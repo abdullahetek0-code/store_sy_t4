@@ -273,12 +273,12 @@
       let delay = 0; 
       cart.forEach(item => { 
         setTimeout(() => { 
-          const link = document.createElement('a'); 
-          link.href = encodeURI(item.file); 
-          link.download = item.title + '.pdf'; 
-          document.body.appendChild(link); 
-          link.click(); 
-          document.body.removeChild(link); 
+        
+        
+          
+          window.open(encodeURI(item.file), '_blank');
+          
+          
         }, delay); 
         delay += 1000; 
       }); 
