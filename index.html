@@ -246,9 +246,9 @@
     const pdfModal = document.getElementById('pdfModal'), pdfFrame = document.getElementById('pdfFrame'), fallbackUI = document.getElementById('fallbackUI'), externalLink = document.getElementById('externalLink'), readerTitle = document.getElementById('readerTitle');
     function openReader(fileName, title) { 
       readerTitle.textContent = title; 
-      const encodedFileName = encodeURI(fileName);
-      pdfFrame.src = encodedFileName; 
-      externalLink.href = encodedFileName; 
+      const rawUrl = 'https://raw.githubusercontent.com/abdullahetek0-code/store_sy_14/main/' + encodeURI(fileName);
+      pdfFrame.src = rawUrl; 
+      externalLink.href = rawUrl; 
       pdfFrame.style.display = 'block'; 
       fallbackUI.style.display = 'none'; 
       pdfModal.classList.add('active'); 
@@ -273,12 +273,7 @@
       let delay = 0; 
       cart.forEach(item => { 
         setTimeout(() => { 
-        
-        
-          
-          window.open(encodeURI(item.file), '_blank');
-          
-          
+          window.open('https://raw.githubusercontent.com/abdullahetek0-code/store_sy_14/main/' + encodeURI(item.file), '_blank');
         }, delay); 
         delay += 1000; 
       }); 
