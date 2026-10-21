@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Nexus Store | متجر المنتجات الرقمية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #04060a; --surface: rgba(20, 25, 35, 0.4); --neon-cyan: #00f0ff; --neon-purple: #b000ff; --neon-pink: #ff007f;
+      --text-main: #ffffff; --text-muted: #a1b0c5; --glass-border: rgba(255, 255, 255, 0.15);
+      --glass-glow: inset 0 0 20px rgba(0, 240, 255, 0.05), 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Cairo', sans-serif; background-color: var(--bg-dark); color: var(--text-main); overflow-x: hidden; padding-bottom: 100px; background-image: radial-gradient(circle at 10% 20%, rgba(176, 0, 255, 0.15) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.15) 0%, transparent 40%); background-attachment: fixed; }
+    #networkCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; position: fixed; width: 100%; top: 0; z-index: 100; background: rgba(4, 6, 10, 0.5); backdrop-filter: blur(35px) saturate(250%); -webkit-backdrop-filter: blur(35px) saturate(250%); border-bottom: 1px solid var(--glass-border); box-shadow: 0 5px 25px rgba(0,0,0,0.5); }
+    .logo { font-size: 1.4rem; font-weight: 900; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 15px rgba(0,240,255,0.3); }
+    .header-right { display: flex; align-items: center; gap: 15px; }
+    .owner-name { font-size: 0.85rem; font-weight: 600; color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0,240,255,0.5); letter-spacing: 1px; }
+    .cart-toggle { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--glass-border); color: var(--text-main); width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative; transition: all 0.3s; box-shadow: inset 0 0 10px rgba(255,255,255,0.05); }
+    .cart-toggle:hover { background: rgba(255, 255, 255, 0.15); border-color: var(--neon-cyan); }
+    .cart-badge { position: absolute; top: -5px; right: -5px; background: var(--neon-pink); color: white; font-size: 0.7rem; font-weight: bold; width: 20px; height: 20px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 10px var(--neon-pink); transform: scale(0); transition: transform 0.3s; }
+    .cart-badge.show { transform: scale(1); }
+    .page-section { display: none; padding: 100px 0 40px; min-height: 100vh; }
+    .page-section.active { display: block; animation: fadeGlass 0.5s ease-out forwards; }
+    @keyframes fadeGlass { 0% { opacity: 0; filter: blur(10px); transform: translateY(20px); } 100% { opacity: 1; filter: blur(0); transform: translateY(0); } }
+    .hero { text-align: center; margin-bottom: 40px; padding: 20px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 900; margin-bottom: 15px; line-height: 1.2; text-shadow: 0 0 30px rgba(255,255,255,0.1); }
+    .hero h1 span { background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: none; }
+    .hero p { color: var(--text-muted); font-size: 1.1rem; max-width: 700px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; padding: 10px 0; }
+    .product-card { background: var(--surface); border: 1px solid var(--glass-border); border-radius: 20px; padding: 15px; position: relative; display: flex; flex-direction: column; backdrop-filter: blur(30px) saturate(200%); transition: all 0.4s; box-shadow: var(--glass-glow); }
+    .product-card:hover { transform: translateY(-8px); border-color: rgba(0, 240, 255, 0.6); box-shadow: inset 0 0 30px rgba(0,240,255,0.15), 0 15px 40px rgba(0,0,0,0.7); }
+    .product-card:active { transform: scale(0.96); }
+    .product-image { width: 100%; height: 220px; border-radius: 14px; margin-bottom: 15px; position: relative; overflow: hidden; background: #111; border: 1px solid rgba(255,255,255,0.05); }
+    .product-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+    .product-card:hover .product-image img { transform: scale(1.1); }
+    .fav-btn { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s; backdrop-filter: blur(5px); }
+    .fav-btn svg { width: 18px; height: 18px; transition: fill 0.3s; }
+    .fav-btn.active { color: var(--neon-pink); border-color: var(--neon-pink); background: rgba(255, 0, 127, 0.2); box-shadow: 0 0 15px var(--neon-pink); }
+    .fav-btn.active svg { fill: var(--neon-pink); }
+    .product-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #fff; }
+    .product-desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; flex-grow: 1; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .product-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .price { font-size: 1.1rem; font-weight: 900; color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.5); }
+    .action-btns { display: flex; gap: 8px; }
+    .btn-read, .btn-add { padding: 8px 12px; border-radius: 10px; font-family: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; border: none; }
+    .btn-read { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(5px); }
+    .btn-read:hover { background: rgba(255,255,255,0.2); }
+    .btn-add { background: linear-gradient(135deg, var(--neon-cyan), #00a8ff); color: var(--bg-dark); box-shadow: 0 5px 15px rgba(0, 240, 255, 0.3); }
+    .btn-add:hover { box-shadow: 0 8px 20px rgba(0, 240, 255, 0.5); transform: translateY(-2px); }
+    .glass-panel { max-width: 450px; margin: 0 auto; background: var(--surface); border: 1px solid var(--glass-border); border-radius: 24px; padding: 40px 30px; backdrop-filter: blur(35px) saturate(200%); text-align: center; box-shadow: var(--glass-glow); }
+    .account-avatar { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2rem; font-weight: 900; color: var(--bg-dark); box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); }
+    .auth-input { width: 100%; padding: 14px 15px; margin-bottom: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; font-family: inherit; font-size: 0.95rem; outline: none; transition: all 0.3s; }
+    .auth-input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0,240,255,0.2); }
+    .error-text { color: #ff4d4d; font-size: 0.8rem; text-align: right; margin-top: -10px; margin-bottom: 10px; display: none; font-weight: 600; }
+    .input-error { border-color: #ff4d4d !important; box-shadow: 0 0 15px rgba(255, 77, 77, 0.2) !important; }
+    .auth-btn { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); color: white; font-weight: 800; font-size: 1.1rem; cursor: pointer; margin-bottom: 15px; font-family: inherit; transition: all 0.3s; box-shadow: 0 10px 20px rgba(176, 0, 255, 0.3); }
+    .auth-btn:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 15px 25px rgba(176, 0, 255, 0.5); }
+    .auth-switch { color: var(--neon-cyan); font-size: 0.9rem; cursor: pointer; font-weight: 600; }
+    .logout-btn { background: rgba(255, 0, 127, 0.15); color: var(--neon-pink); border: 1px solid var(--neon-pink); padding: 12px 30px; border-radius: 12px; cursor: pointer; font-family: inherit; font-weight: bold; transition: all 0.3s; }
+    .settings-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; margin-bottom: 15px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); }
+    .toggle-switch { width: 50px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 20px; position: relative; cursor: pointer; transition: 0.4s; }
+    .toggle-switch::after { content: ''; position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; background: white; border-radius: 50%; transition: 0.4s; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+    .toggle-switch.active { background: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan); }
+    .toggle-switch.active::after { right: 25px; }
+    .bottom-nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 600px; background: rgba(20, 25, 35, 0.4); backdrop-filter: blur(40px) saturate(250%); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; display: flex; justify-content: space-around; align-items: center; padding: 4px 8px; z-index: 1000; box-shadow: 0 15px 50px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.1); }
+    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; transition: 0.3s; padding: 6px 4px; border-radius: 18px; flex: 1; }
+    .nav-item svg { width: 20px; height: 20px; margin-bottom: 2px; transition: 0.3s; }
+    .nav-item span { font-size: 0.6rem; font-weight: 700; white-space: nowrap; }
+    .nav-item.active { color: var(--neon-cyan); background: rgba(0, 240, 255, 0.1); text-shadow: 0 0 15px rgba(0, 240, 255, 0.8); }
+    .nav-item.active svg { filter: drop-shadow(0 0 10px var(--neon-cyan)); transform: translateY(-2px) scale(1.1); }
+    .modal-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(15px); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.4s ease; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-content { width: 95%; max-width: 800px; height: 85vh; background: var(--surface); border: 1px solid var(--neon-cyan); border-radius: 24px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 60px rgba(0, 240, 255, 0.3), inset 0 0 30px rgba(0,240,255,0.1); backdrop-filter: blur(40px); transform: scale(0.9); transition: transform 0.4s; }
+    .modal-overlay.active .modal-content { transform: scale(1); }
+    .modal-header { padding: 20px; background: rgba(0,0,0,0.4); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); }
+    .close-btn { background: rgba(255,255,255,0.1); border: none; color: white; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; transition: all 0.2s; }
+    .modal-body { flex-grow: 1; position: relative; display: flex; flex-direction: column; }
+    .modal-body iframe { width: 100%; height: 100%; border: none; position: absolute; z-index: 1; }
+    .contact-btns-wrapper { display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 20px;}
+    .contact-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; color: white; padding: 15px 30px; border-radius: 16px; text-decoration: none; font-weight: bold; font-size: 1.1rem; width: 100%; max-width: 300px; transition: all 0.3s; border: 1px solid rgba(255,255,255,0.1); }
+    .whatsapp-btn { background: linear-gradient(135deg, #25D366, #128C7E); box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3); }
+    .email-btn { background: linear-gradient(135deg, #ea4335, #b31412); box-shadow: 0 10px 20px rgba(234, 67, 53, 0.3); }
+    .cart-sidebar { position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; background: rgba(10, 15, 20, 0.6); backdrop-filter: blur(40px) saturate(200%); z-index: 3000; border-left: 1px solid var(--glass-border); transition: right 0.5s; display: flex; flex-direction: column; }
+    .cart-sidebar.active { right: 0; }
+    .cart-header { padding: 25px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
+    .cart-items { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; border: 1px solid var(--glass-border); }
+    .cart-footer { padding: 25px; border-top: 1px solid var(--glass-border); background: rgba(0,0,0,0.4); }
+    .checkout-btn { width: 100%; padding: 18px; border-radius: 16px; border: none; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); color: #fff; font-family: inherit; font-size: 1.1rem; font-weight: 800; cursor: pointer; transition: all 0.3s; }
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 2500; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .overlay.active { opacity: 1; visibility: visible; }
+    footer { text-align: center; padding: 30px; color: var(--text-muted); font-size: 0.9rem; border-top: 1px solid var(--glass-border); margin-top: 50px; }
+    footer span { color: var(--neon-cyan); font-weight: bold; }
+    @media (min-width: 768px) { .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 30px; } .product-image { height: 260px; } .hero h1 { font-size: 3rem; } }
+  </style>
+</head>
+<body>
+  <canvas id="networkCanvas"></canvas>
+  <header>
+    <div class="logo">Nexus Store</div>
+    <div class="header-right">
+      <span class="owner-name">𝒂𝒃𝒅𝒖𝒍𝒍𝒂𝒉𝒆𝒕𝒆𝒌</span>
+      <div class="cart-toggle" onclick="toggleCart(true)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+        <span class="cart-badge" id="cartBadge">0</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <section id="shop-section" class="page-section active">
+      <div class="hero">
+        <h1>متجر <span>المنتجات الرقمية والإلكترونية</span></h1>
+        <p>تصفح، اقرأ، وحمل أفضل الملفات والكتب بصيغة PDF بتجربة بصرية مذهلة. الملفات مجانية بالكامل حالياً!</p>
+      </div>
+      <div class="grid" id="productsGrid"></div>
+    </section>
+
+    <section id="favorites-section" class="page-section">
+      <div class="hero"><h1>المفضلة <span>❤</span></h1><p>الملفات التي قمت بحفظها للرجوع إليها لاحقاً.</p></div>
+      <div class="grid" id="favoritesGrid"></div>
+      <div id="emptyFavMsg" class="glass-panel" style="display: none; margin-top: 30px;">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1" style="margin-bottom: 15px;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        <h3 style="color: var(--text-muted);">لا توجد ملفات في المفضلة حالياً</h3>
+      </div>
+    </section>
+
+    <section id="account-section" class="page-section">
+      <div class="hero"><h1>حسابي</h1></div>
+      <div class="glass-panel" id="accountBox"></div>
+    </section>
+
+    <section id="settings-section" class="page-section">
+      <div class="hero"><h1>الإعدادات</h1></div>
+      <div style="max-width: 600px; margin: 0 auto;">
+        <div class="settings-item"><h3>تأثيرات الخلفية (الجزيئات)</h3><div class="toggle-switch active" id="particleToggle" onclick="toggleParticles(this)"></div></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>جميع الحقوق محفوظة © 2026 | صمم بواسطة <span>𝒂𝒃𝒅𝒖𝒍𝒍𝒂𝒉𝒆𝒕𝒆𝒌</span></footer>
+
+  <nav class="bottom-nav">
+    <div class="nav-item active" onclick="switchTab('shop-section', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg><span>المتجر</span></div>
+    <div class="nav-item" onclick="switchTab('favorites-section', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg><span>المفضلة</span></div>
+    <div class="nav-item" onclick="switchTab('account-section', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>حسابي</span></div>
+    <div class="nav-item" onclick="openContactModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg><span>تواصل</span></div>
+    <div class="nav-item" onclick="switchTab('settings-section', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg><span>إعدادات</span></div>
+  </nav>
+
+  <div class="modal-overlay" id="pdfModal">
+    <div class="modal-content">
+      <div class="modal-header"><span style="font-weight: 800; color: var(--neon-cyan); font-size: 1.2rem;" id="readerTitle">عنوان الملف</span><button class="close-btn" onclick="closeReader()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+      <div class="modal-body"><iframe id="pdfFrame" src=""></iframe><div class="fallback-ui" id="fallbackUI" style="display: none; text-align: center; padding: 40px;"><h3 style="color: #fff; margin-bottom: 10px;">متصفحك يمنع المعاينة المباشرة</h3><p style="color:var(--text-muted); margin: 10px 0;">اضغط أدناه لفتح الملف في تطبيق خارجي.</p><a id="externalLink" href="#" target="_blank" style="display: inline-block; padding: 12px 30px; background: var(--neon-cyan); color: var(--bg-dark); text-decoration: none; border-radius: 10px; font-weight: bold; margin-top: 15px;">فتح الملف الآن</a></div></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="contactModal">
+    <div class="glass-panel" style="position: relative; padding: 40px 20px;">
+      <button class="close-btn" style="position: absolute; top: 15px; left: 15px;" onclick="closeContactModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      <h2 style="font-size: 1.8rem; margin-bottom: 10px; color: #fff;">تواصل معنا</h2><p style="color: var(--text-muted); margin-bottom: 20px;">هل لديك استفسار أو تواجه مشكلة؟ نحن هنا لمساعدتك!</p>
+      <div class="contact-btns-wrapper">
+        <a href="https://wa.me/306992229656" target="_blank" class="contact-btn whatsapp-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>مراسلة عبر واتساب</a>
+        <a href="mailto:abdullahetek0@gmail.com" target="_blank" class="contact-btn email-btn"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>البريد الإلكتروني</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="toggleCart(false)"></div>
+  <div class="cart-sidebar" id="cartSidebar">
+    <div class="cart-header"><h2 style="font-size: 1.3rem; color: var(--neon-cyan);">سلة التحميل</h2><button class="close-btn" onclick="toggleCart(false)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-footer"><button class="checkout-btn" onclick="checkout()">تحميل الملفات المجانية</button></div>
+  </div>
+
+  <script>
+    const productsData = [
+      { id: 1, title: 'حل أوراق البلاغة', desc: 'حل أوراق البلاغة.', file: '1 حل أوراق البلاغة.pdf', image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 2, title: 'حل أوراق الصرف', desc: 'حل أوراق الصرف.', file: '2 حل أوراق الصّرف.pdf', image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 3, title: 'اختبار نواس مرن + فتل', desc: 'ملف فيزياء محلول بالكامل.', file: 'اختبار نواس مرن + فتل محلول.pdf', image: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 4, title: 'أساس بكلوريا عربي', desc: 'أساس بكلوريا عربي علمي وأدبي.', file: 'أساس_بكلوريا_عربي_علمي_وأدبي_20.pdf', image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 5, title: 'إعراب القصائد', desc: 'إعراب القصائد مكتبتي.', file: 'إعراب القصائد مكتبتي.pdf', image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 6, title: 'الأوراق الذهبية فلسفة', desc: 'الأوراق الذهبية فلسفة.', file: 'الأوراق_الذهبية_فلسفة_ا_حكم_ت_والي_يوت_مكتبتي.pdf', image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 7, title: 'الكامل في الفلسفة 2026', desc: 'ملخص شامل لمادة الفلسفة.', file: 'الكامل في الفلسفة 2026.pdf', image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 8, title: 'ترتيب الحوار - فرنسي', desc: 'تدريبات على ترتيب الحوار.', file: 'ترتيب الحوار - فرنسي.pdf', image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 9, title: 'تلخيص جميع دروس فلسفة', desc: 'تلخيص جميع دروس الفلسفة.', file: 'تلخيص-جميع-دروس-فلسفة.pdf', image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 10, title: 'أسئلة دورات العربي', desc: 'جميع أسئلة دورات العربي حتى 25.', file: 'جميع_أسئلة_دورات_العربي_حتى_25_بوت_مكتبتي.pdf', image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 11, title: 'دليل 12 أدبي', desc: 'دليل الصف الثاني عشر الأدبي.', file: 'دليل-12-ادبي.pdf', image: 'https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 12, title: 'قواعد الفرنسي', desc: 'قواعد الفرنسي بكسل بوت.', file: 'قواعد الفرنسي بكسل بوت مكتبتي.pdf', image: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 13, title: 'مواضيع الإنكليزي (السعادة)', desc: 'مواضيع اللغة الإنكليزية السعادة.', file: 'مواضيع اللغة الانكليزية السعادة.pdf', image: 'https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 14, title: 'نماذج امتحانية للأزمنة', desc: 'نماذج امتحانية للازمنة في اللغة الإنكليزية.', file: 'نماذج امتحانية للازمنة في اللغة الإنكليزية.pdf', image: 'https://images.unsplash.com/photo-1491841550275-ad7854e35ca6?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 15, title: 'نموذج فيزياء - نواس ثقلي', desc: 'نموذج فيزياء النواس الثقلي.', file: 'نموذج فيزياء - نواس ثقلي.pdf', image: 'https://images.unsplash.com/photo-1614849963640-9cc74b2a826f?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 16, title: 'نوطة عربي بكالوريا', desc: 'نوطة عربي بكالوريا أ . فادي قطاع.', file: 'نوطة عربي بكالوريا أ . فادي قطاع.pdf', image: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 17, title: 'ملخص أحمد الحامد', desc: 'ملخص أحمد الحامد.', file: 'Ahmed Al-Hamid .pdf', image: 'https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=400&auto=format&fit=crop', price: 0 },
+      { id: 18, title: 'تاريخ أصفياء الله', desc: 'History of God\'s chosen ones.', file: 'History of God\'s chosen ones .pdf', image: 'https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=400&auto=format&fit=crop', price: 0 }
+    ];
+
+    let favorites = JSON.parse(localStorage.getItem('nexus_favs')) || [];
+    let cart = [];
+
+    const canvas = document.getElementById('networkCanvas'), ctx = canvas.getContext('2d');
+    let width, height, particles = [], animationFrameId, isParticlesActive = true;
+    function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+    class Particle {
+      constructor() { this.x = Math.random() * width; this.y = Math.random() * height; this.vx = (Math.random() - 0.5) * 0.8; this.vy = (Math.random() - 0.5) * 0.8; this.radius = Math.random() * 2 + 1; }
+      update() { this.x += this.vx; this.y += this.vy; if (this.x < 0 || this.x > width) this.vx *= -1; if (this.y < 0 || this.y > height) this.vy *= -1; }
+      draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0, 240, 255, 0.7)'; ctx.fill(); }
+    }
+    for (let i = 0; i < 60; i++) particles.push(new Particle());
+    function animate() {
+      if (!isParticlesActive) return;
+      ctx.clearRect(0, 0, width, height);
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update(); particles[i].draw();
+        for (let j = i + 1; j < particles.length; j++) {
+          let dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y, dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) { ctx.beginPath(); ctx.strokeStyle = `rgba(176, 0, 255, ${1 - dist / 120})`; ctx.lineWidth = 0.6; ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke(); }
+        }
+      }
+      animationFrameId = requestAnimationFrame(animate);
+    } animate();
+    function toggleParticles(el) { el.classList.toggle('active'); isParticlesActive = el.classList.contains('active'); if (isParticlesActive) animate(); else cancelAnimationFrame(animationFrameId); canvas.style.opacity = isParticlesActive ? '1' : '0'; }
+    
+    const grid = document.getElementById('productsGrid'), favGrid = document.getElementById('favoritesGrid'), emptyFavMsg = document.getElementById('emptyFavMsg');
+    
+    function createProductCard(prod) {
+      const isFav = favorites.includes(prod.id);
+      return `<div class="product-card"><div class="product-image"><button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(event, ${prod.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></button><img src="${prod.image}" alt="${prod.title}" loading="lazy"></div><h3 class="product-title">${prod.title}</h3><p class="product-desc">${prod.desc}</p><div class="product-footer"><span class="price">مجاني</span><div class="action-btns"><button class="btn-read" onclick="openReader('${prod.file}', '${prod.title}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> قراءة</button><button class="btn-add" onclick="addToCart('${prod.title}', '${prod.file}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> تحميل</button></div></div></div>`;
+    }
+    function renderProducts() { grid.innerHTML = productsData.map(p => createProductCard(p)).join(''); }
+    function renderFavorites() { const favProds = productsData.filter(p => favorites.includes(p.id)); if (favProds.length === 0) { favGrid.innerHTML = ''; emptyFavMsg.style.display = 'block'; } else { emptyFavMsg.style.display = 'none'; favGrid.innerHTML = favProds.map(p => createProductCard(p)).join(''); } }
+    function toggleFavorite(event, id) { event.stopPropagation(); const index = favorites.indexOf(id); if (index > -1) { favorites.splice(index, 1); } else { favorites.push(id); } localStorage.setItem('nexus_favs', JSON.stringify(favorites)); renderProducts(); renderFavorites(); }
+    
+    renderProducts(); renderFavorites();
+    
+    function switchTab(sectionId, navElement) { document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active')); document.getElementById(sectionId).classList.add('active'); if(navElement) navElement.classList.add('active'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    
+    const pdfModal = document.getElementById('pdfModal'), pdfFrame = document.getElementById('pdfFrame'), fallbackUI = document.getElementById('fallbackUI'), externalLink = document.getElementById('externalLink'), readerTitle = document.getElementById('readerTitle');
+    function openReader(fileName, title) { 
+      readerTitle.textContent = title; 
+      const encodedFileName = encodeURI(fileName);
+      pdfFrame.src = encodedFileName; 
+      externalLink.href = encodedFileName; 
+      pdfFrame.style.display = 'block'; 
+      fallbackUI.style.display = 'none'; 
+      pdfModal.classList.add('active'); 
+      document.body.style.overflow = 'hidden'; 
+      if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) { 
+        setTimeout(() => { pdfFrame.style.display = 'none'; fallbackUI.style.display = 'block'; }, 1000); 
+      } 
+    }
+    function closeReader() { pdfModal.classList.remove('active'); pdfFrame.src = ''; document.body.style.overflow = 'auto'; }
+    
+    const contactModal = document.getElementById('contactModal');
+    function openContactModal() { contactModal.classList.add('active'); document.body.style.overflow = 'hidden'; }
+    function closeContactModal() { contactModal.classList.remove('active'); document.body.style.overflow = 'auto'; }
+    
+    function addToCart(title, file) { if (!cart.some(item => item.title === title)) { cart.push({ title, file }); updateCartUI(); const badge = document.getElementById('cartBadge'); badge.style.transform = 'scale(1.5)'; setTimeout(() => badge.style.transform = 'scale(1)', 200); toggleCart(true); } else { alert('هذا الملف موجود بالفعل في السلة!'); } }
+    function removeFromCart(title) { cart = cart.filter(item => item.title !== title); updateCartUI(); }
+    function updateCartUI() { const cartItemsContainer = document.getElementById('cartItems'), cartBadge = document.getElementById('cartBadge'); cartItemsContainer.innerHTML = ''; if (cart.length === 0) { cartItemsContainer.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:20px;">السلة فارغة</p>'; cartBadge.classList.remove('show'); } else { cartBadge.textContent = cart.length; cartBadge.classList.add('show'); cart.forEach(item => { cartItemsContainer.innerHTML += `<div class="cart-item"><div><div style="font-weight:800; font-size:0.95rem; color:#fff;">${item.title}</div><div style="color:#10b981; font-size:0.85rem;">مجاني</div></div><button class="close-btn" style="color:#ff4d4d; background:transparent;" onclick="removeFromCart('${item.title}')">×</button></div>`; }); } }
+    function toggleCart(forceOpen = false) { const sidebar = document.getElementById('cartSidebar'), overlay = document.getElementById('overlay'); if (forceOpen) { sidebar.classList.add('active'); overlay.classList.add('active'); } else { sidebar.classList.remove('active'); overlay.classList.remove('active'); } }
+    
+    function checkout() { 
+      if (cart.length === 0) return alert('السلة فارغة!'); 
+      let delay = 0; 
+      cart.forEach(item => { 
+        setTimeout(() => { 
+          const link = document.createElement('a'); 
+          link.href = encodeURI(item.file); 
+          link.download = item.title + '.pdf'; 
+          document.body.appendChild(link); 
+          link.click(); 
+          document.body.removeChild(link); 
+        }, delay); 
+        delay += 1000; 
+      }); 
+      alert('بدأ تحميل ملفاتك المجانية!'); 
+      cart = []; updateCartUI(); toggleCart(); 
+    }
+    
+    const accountBox = document.getElementById('accountBox');
+    function isValidEmail(email) { const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/; return re.test(String(email).toLowerCase()); }
+    function checkAuth() { const user = JSON.parse(localStorage.getItem('nexus_user')); if (user) { accountBox.innerHTML = `<div class="account-avatar">${user.name.charAt(0).toUpperCase()}</div><h2 style="margin-bottom: 10px; color: #fff;">أهلاً بك، ${user.name}</h2><p style="color: var(--neon-cyan); margin-bottom: 30px; font-weight: bold;">${user.email}</p><button class="logout-btn" onclick="logout()">تسجيل الخروج</button>`; } else { accountBox.innerHTML = `<div class="account-avatar" style="background: rgba(255,255,255,0.1); color: white; box-shadow: none; border: 1px solid var(--glass-border);">؟</div><h2 style="margin-bottom: 20px; color: #fff;">تسجيل الدخول</h2><input type="email" id="emailInput" class="auth-input" placeholder="البريد الإلكتروني"><div class="error-text" id="emailError">يرجى إدخال بريد إلكتروني صحيح</div><input type="password" id="passInput" class="auth-input" placeholder="كلمة المرور"><div class="error-text" id="passError">كلمة المرور يجب أن تكون 6 أحرف على الأقل</div><button class="auth-btn" onclick="login()">دخول</button><p class="auth-switch" onclick="showRegister()">ليس لديك حساب؟ إنشاء حساب جديد</p>`; } }
+    function showRegister() { accountBox.innerHTML = `<div class="account-avatar" style="background: rgba(255,255,255,0.1); color: white; box-shadow: none; border: 1px solid var(--glass-border);">+</div><h2 style="margin-bottom: 20px; color: #fff;">إنشاء حساب جديد</h2><input type="text" id="nameInput" class="auth-input" placeholder="الاسم الكامل"><input type="email" id="regEmailInput" class="auth-input" placeholder="البريد الإلكتروني"><div class="error-text" id="regEmailError">يرجى إدخال بريد إلكتروني صحيح</div><input type="password" id="regPassInput" class="auth-input" placeholder="كلمة المرور (6 أحرف على الأقل)"><div class="error-text" id="regPassError">كلمة المرور قصيرة جداً</div><button class="auth-btn" onclick="register()">إنشاء الحساب</button><p class="auth-switch" onclick="checkAuth()">لديك حساب بالفعل؟ تسجيل الدخول</p>`; }
+    function login() { const emailInput = document.getElementById('emailInput'), passInput = document.getElementById('passInput'), emailError = document.getElementById('emailError'), passError = document.getElementById('passError'); let valid = true; if(!isValidEmail(emailInput.value)) { emailInput.classList.add('input-error'); emailError.style.display = 'block'; valid = false; } else { emailInput.classList.remove('input-error'); emailError.style.display = 'none'; } if(passInput.value.length < 6) { passInput.classList.add('input-error'); passError.style.display = 'block'; valid = false; } else { passInput.classList.remove('input-error'); passError.style.display = 'none'; } if(!valid) return; const savedUser = JSON.parse(localStorage.getItem('nexus_registered_user')); if(savedUser && savedUser.email === emailInput.value && savedUser.pass === passInput.value) { localStorage.setItem('nexus_user', JSON.stringify(savedUser)); checkAuth(); alert('تم تسجيل الدخول بنجاح!'); } else { alert('عذراً، البريد الإلكتروني أو كلمة المرور غير صحيحة.'); } }
+    function register() { const nameInput = document.getElementById('nameInput'), emailInput = document.getElementById('regEmailInput'), passInput = document.getElementById('regPassInput'), emailError = document.getElementById('regEmailError'), passError = document.getElementById('regPassError'); let valid = true; if(nameInput.value.trim().length < 3) { nameInput.classList.add('input-error'); valid = false; } else { nameInput.classList.remove('input-error'); } if(!isValidEmail(emailInput.value)) { emailInput.classList.add('input-error'); emailError.style.display = 'block'; valid = false; } else { emailInput.classList.remove('input-error'); emailError.style.display = 'none'; } if(passInput.value.length < 6) { passInput.classList.add('input-error'); passError.style.display = 'block'; valid = false; } else { passInput.classList.remove('input-error'); passError.style.display = 'none'; } if(!valid) return; localStorage.setItem('nexus_registered_user', JSON.stringify({ name: nameInput.value.trim(), email: emailInput.value, pass: passInput.value })); alert('تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.'); checkAuth(); }
+    function logout() { localStorage.removeItem('nexus_user'); checkAuth(); }
+    checkAuth();
+  </script>
+</body>
+</html>
